@@ -1,27 +1,52 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
+// MongoSchema 분석 : https://www.prisma.io/docs/reference/api-reference/prisma-schema-reference#mongodb-2
+
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "mysql"
+  provider = "mongodb"
   url      = env("DATABASE_URL")
 }
 
+// MongoDB에서는 복합키 지원이 되지 않기때문에 @@id 가 지원되지 않는다.
+// MongoDB에서 autoincrement() 또한 지원되지 않음
+
+// '@'로 시작하는것은 필드 속성에 대한 것이다
+// '@@'로 시작하는것은 블록(예를 들어 테이블 엔티티 하나) 속성에 대한 것이다.
+
+model Post{
+  // MongoDB의 PK에 해당하는 필드는 항상 _id 필드이므로
+  // @map()은 매개변수 값을 컬럼의 이름으로 매핑한다.
+  // 주의할점은 @map은 실제 테이블의 값을 바꾸는 것이 아니다
+  // 이는 Prism Client API에서 접근할때를 위함이다.
+  // 예를들어 아래에서는 _id필드를 Client API에서 .id를 통해 가져오는것
+  // @db.ObjectId -> MongoDB object id 타입
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
+  author User @relation(fields: [authorId], references: [id])
+  authorId String @db.ObjectId
+}
+
 model User{
-  id    Int    @id @default(autoincrement())
+  id String @id @default(auto()) @map("_id") @db.ObjectId
   email String @unique
   name String?
+  address Address?
   post Post[]
 }
 
-model Post{
-  id Int @id @default(autoincrement())
-  title String
-  content String?
-  published Boolean @default(true)
-  author User @relation(fields: [authorId],references: [id])
-  authorId Int
+model Comment{
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+}
+
+// Generated Type : https://www.prisma.io/docs/concepts/components/prisma-client/advanced-type-safety
+// TypeScript Type 체크 용도
+type Address {
+  street String
+  city String
+  state String
 }
